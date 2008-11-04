@@ -13,7 +13,7 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
         'info' => t('Tip a Friend'),
         'cache' => BLOCK_CACHE_PER_PAGE,
       );
-      return;
+      return $blocks;
       break;
     // Show the configuration form for the block
     case 'configure':
@@ -21,17 +21,45 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
         case 0:
           $form = array();
           $types = node_get_types();
-          foreach ($types as $type) {
-            $form['node_type_'. $type] = array(
+          foreach ($types as $key => $type) {
+            $title = variable_get('tip_block_node_type_'. $key, '');
+            $form['node_type_'. $key] = array(
+              '#type' => 'fieldset',
+              '#title' => t('@type pages', array('@type' => ucfirst($type->name))),
+              '#collapsible' => TRUE,
+              '#collapsed' => empty($title),
+              '#tree' => TRUE
+            );
+            $form['node_type_'. $key]['title'] = array(
               '#type' => 'textfield',
-              '#title' => t('Title'),
-              '#default_value' => variable_get('tip_block_node_type_'. $type, ''),
+              '#title' => t('Block title'),
+              '#description' => t('Leave empty to hide block on page'),
+              '#default_value' => $title,
+            );
+            $form['node_type_'. $key]['desc'] = array(
+              '#type' => 'textfield',
+              '#title' => t('Description'),
+              '#default_value' => variable_get('tip_block_node_type_'. $key .'_desc', ''),
             );
           }
+          $title = variable_get('tip_block_profile_own', '');
           $form['profile_own'] = array(
+            '#type' => 'fieldset',
+            '#title' => t('@type pages', array('@type' => t('Own profile'))),
+            '#collapsible' => TRUE,
+            '#collapsed' => empty($title),
+            '#tree' => TRUE
+          );
+          $form['profile_own']['title'] = array(
             '#type' => 'textfield',
-            '#title' => t('Title'),
-            '#default_value' => variable_get('tip_block_profile_own', ''),
+            '#title' => t('Block title'),
+            '#description' => t('Leave empty to hide block on page'),
+            '#default_value' => $title,
+          );
+          $form['profile_own']['desc'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Description'),
+            '#default_value' => variable_get('tip_block_profile_own_desc', ''),
           );
           return $form;
         break;
@@ -42,10 +70,12 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
       switch ($delta) {
         case 0:
           $types = node_get_types();
-          foreach ($types as $type) {
-            variable_set('tip_block_node_type_'. $type, $edit['node_type_'. $type])
+          foreach ($types as $key => $type) {
+            variable_set('tip_block_node_type_'. $key, $edit['node_type_'. $key]['title']);
+            variable_set('tip_block_node_type_'. $key .'_desc', $edit['node_type_'. $key]['desc']);
           }
-          variable_set('tip_block_profile_own', $edit['profile_own'])
+          variable_set('tip_block_profile_own', $edit['profile_own']['title']);
+          variable_set('tip_block_profile_own_desc', $edit['profile_own']['desc']);
         break;
       }
       break;
@@ -54,27 +84,128 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
       $block = array();
       switch ($delta) {
         case 0:
-          $subject = NULL;
           $arg = arg(0);
+
           if ($arg == 'node') {
-            $type = db_result(db_query('SELECT type FROM {node} WHERE nid = %d', arg(1));
-            if ($type) {
-              $subject = variable_get('tip_block_node_type_'. $type, NULL);
+            $node = node_load(arg(1));
+            if ($node) {
+              $subject = variable_get('tip_block_node_type_'. $node->type, NULL);
+              if ($subject) {
+                $desc = variable_get('tip_block_node_type_'. $node->type .'_desc', '');
+
+                $block['subject'] = check_plain($subject);
+                $block['content'] = drupal_get_form('tip_block_form', $desc, 'node', $node->nid);
+              }
             }
           }
           else if ($arg == 'user') {
             global $user;
-            if ($user->uid == arg(1)) {
+            if ($user->uid != 0 && $user->uid == arg(1)) {
               $subject = variable_get('tip_block_profile_own', NULL);
+              if ($subject) {
+                $desc = variable_get('tip_block_profile_own_desc', '');
+
+                $block['subject'] = check_plain($subject);
+                $block['content'] = drupal_get_form('tip_block_form', $desc, 'user');
+              }
             }
-          }
-          if (!empty($subject)) {
-            $block['subject'] = $subject;
-            $block['content'] = drupal_get_form(); //PELLE: Finish this
           }
         break;
       }
       return $block;
+      break;
+  }
+}
+
+function tip_block_form($form_state, $desc, $type, $nid = NULL) {
+  global $user;
+
+  $form = array(
+    'friends_email' => array(
+      '#type' => 'textfield',
+      '#title' => t('Your friend\'s e-mail'),
+      '#required' => TRUE,
+      '#size' => 40,
+      '#weight' => -6,
+    ),
+    'send' => array(
+      '#type' => 'submit',
+      '#value' => t('Send »'),
+      '#weight' => 5,
+    ),
+    'type' => array(
+      '#type' => 'value',
+      '#value' => $type,
+    ),
+  );
+  if ($user->uid == 0) {
+    $form['my_email'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Your e-mail'),
+      '#required' => TRUE,
+      '#size' => 40,
+      '#weight' => -3,
+    );
+  }
+  else {
+    $form['my_email'] = array(
+      '#type' => 'value',
+      '#value' => $user->mail,
+    );
+  }
+  if ($nid) {
+    $form['nid'] = array(
+      '#type' => 'value',
+      '#value' => $nid,
+    );
+  }
+  if (!empty($desc)) {
+    $form['desc'] = array(
+      '#value' => check_plain($desc),
+      '#weight' => -10,
+    );
+  }
+  return $form;
+}
+
+function tip_block_form_validate($form, &$form_state) {
+  if (!valid_email_address($form_state['values']['friends_email'])) {
+    form_set_error('friends_email', t('Your friends e-mail must be a valid e-mail address'));
+  }
+  if (!valid_email_address($form_state['values']['my_email'])) {
+    form_set_error('my_email', t('Your e-mail must be a valid e-mail address'));
+  }
+}
+
+function tip_block_form_submit($form, &$form_state) {
+  global $language;
+  $params = array(
+    'type' => $form_state['values']['type'],
+    'nid' => empty($form_state['values']['nid']) ? NULL : $form_state['values']['nid'],
+  );
+  $to = $form_state['values']['friends_email'];
+  $from = $form_state['values']['my_email'];
+  drupal_mail('tip_block', 'tip', $to, $language, $params, $from, true);
+  drupal_set_message(t('A mail has been sent to %mail', array('%mail' => $to)));
+}
+
+function tip_block_mail($key, &$message, $params) {
+  global $user;
+  
+  $language = $message['language'];
+  
+  switch($key) {
+    case 'tip':
+      if ($params['type'] == 'node') {
+        $link = url('node/'. $params['nid'], array('absolute' => true));
+        $message['subject'] = t('I want to tell you about something on Dinby.dk', array(), $language->language);
+        $message['body'] = t("I found this on Dinby.dk - check it out:\n\n!link", array('!link' => $link), $language->language);
+      }
+      else {
+        $link = url('<front>', array('absolute' => true));
+        $message['subject'] = t('I want to tell you about Dinby.dk', array(), $language->language);
+        $message['body'] = t("I'm a member on Dinby.dk - check it out:\n\n!link", array('!link' => $link), $language->language);
+      }
       break;
   }
 }
