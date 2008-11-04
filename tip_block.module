@@ -2,6 +2,13 @@
 // $Id$
 
 /**
+ * @file
+ * The Tip a Friend Block Module
+ *
+ * Adds a block from which users can send mail about content on the site to their friends
+ */
+
+/**
  * Implementation of hook_block().
  */
 function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
@@ -25,7 +32,7 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
             $title = variable_get('tip_block_node_type_'. $key, '');
             $form['node_type_'. $key] = array(
               '#type' => 'fieldset',
-              '#title' => t('@type pages', array('@type' => ucfirst($type->name))),
+              '#title' => t('@type pages', array('@type' => drupal_ucfirst($type->name))),
               '#collapsible' => TRUE,
               '#collapsed' => empty($title),
               '#tree' => TRUE
@@ -185,24 +192,24 @@ function tip_block_form_submit($form, &$form_state) {
   );
   $to = $form_state['values']['friends_email'];
   $from = $form_state['values']['my_email'];
-  drupal_mail('tip_block', 'tip', $to, $language, $params, $from, true);
+  drupal_mail('tip_block', 'tip', $to, $language, $params, $from, TRUE);
   drupal_set_message(t('A mail has been sent to %mail', array('%mail' => $to)));
 }
 
 function tip_block_mail($key, &$message, $params) {
   global $user;
-  
+
   $language = $message['language'];
-  
-  switch($key) {
+
+  switch ($key) {
     case 'tip':
       if ($params['type'] == 'node') {
-        $link = url('node/'. $params['nid'], array('absolute' => true));
+        $link = url('node/'. $params['nid'], array('absolute' => TRUE));
         $message['subject'] = t('I want to tell you about something on Dinby.dk', array(), $language->language);
         $message['body'] = t("I found this on Dinby.dk - check it out:\n\n!link", array('!link' => $link), $language->language);
       }
       else {
-        $link = url('<front>', array('absolute' => true));
+        $link = url('<front>', array('absolute' => TRUE));
         $message['subject'] = t('I want to tell you about Dinby.dk', array(), $language->language);
         $message['body'] = t("I'm a member on Dinby.dk - check it out:\n\n!link", array('!link' => $link), $language->language);
       }
