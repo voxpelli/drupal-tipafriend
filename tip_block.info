@@ -1,0 +1,5 @@
+; $Id$
+name = Tip a Friend Block
+version = "6.x-0.1"
+core = "6.x"
+description = Creates a block where a mail with a link to the page can be sent to a friend

@@ -1,0 +1,80 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_block().
+ */
+function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    // List our blocks
+    case 'list':
+      $blocks = array();
+      $blocks[0] = array(
+        'info' => t('Tip a Friend'),
+        'cache' => BLOCK_CACHE_PER_PAGE,
+      );
+      return;
+      break;
+    // Show the configuration form for the block
+    case 'configure':
+      switch ($delta) {
+        case 0:
+          $form = array();
+          $types = node_get_types();
+          foreach ($types as $type) {
+            $form['node_type_'. $type] = array(
+              '#type' => 'textfield',
+              '#title' => t('Title'),
+              '#default_value' => variable_get('tip_block_node_type_'. $type, ''),
+            );
+          }
+          $form['profile_own'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Title'),
+            '#default_value' => variable_get('tip_block_profile_own', ''),
+          );
+          return $form;
+        break;
+      }
+      break;
+    // Save the configuration for the block
+    case 'save':
+      switch ($delta) {
+        case 0:
+          $types = node_get_types();
+          foreach ($types as $type) {
+            variable_set('tip_block_node_type_'. $type, $edit['node_type_'. $type])
+          }
+          variable_set('tip_block_profile_own', $edit['profile_own'])
+        break;
+      }
+      break;
+    // View the block
+    case 'view':
+      $block = array();
+      switch ($delta) {
+        case 0:
+          $subject = NULL;
+          $arg = arg(0);
+          if ($arg == 'node') {
+            $type = db_result(db_query('SELECT type FROM {node} WHERE nid = %d', arg(1));
+            if ($type) {
+              $subject = variable_get('tip_block_node_type_'. $type, NULL);
+            }
+          }
+          else if ($arg == 'user') {
+            global $user;
+            if ($user->uid == arg(1)) {
+              $subject = variable_get('tip_block_profile_own', NULL);
+            }
+          }
+          if (!empty($subject)) {
+            $block['subject'] = $subject;
+            $block['content'] = drupal_get_form(); //PELLE: Finish this
+          }
+        break;
+      }
+      return $block;
+      break;
+  }
+}
