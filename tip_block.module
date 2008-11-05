@@ -44,9 +44,10 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
               '#default_value' => $title,
             );
             $form['node_type_'. $key]['desc'] = array(
-              '#type' => 'textfield',
+              '#type' => 'textarea',
               '#title' => t('Description'),
               '#default_value' => variable_get('tip_block_node_type_'. $key .'_desc', ''),
+              '#maxlength' => 500,
             );
           }
           $title = variable_get('tip_block_profile_own', '');
@@ -64,9 +65,10 @@ function tip_block_block($op = 'list', $delta = 0, $edit = array()) {
             '#default_value' => $title,
           );
           $form['profile_own']['desc'] = array(
-            '#type' => 'textfield',
+            '#type' => 'textarea',
             '#title' => t('Description'),
             '#default_value' => variable_get('tip_block_profile_own_desc', ''),
+            '#maxlength' => 500,
           );
           return $form;
         break;
