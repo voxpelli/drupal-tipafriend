@@ -205,15 +205,16 @@ function tip_block_mail($key, &$message, $params) {
 
   switch ($key) {
     case 'tip':
+      $site = variable_get('site_name', 'Drupal');
       if ($params['type'] == 'node') {
         $link = url('node/'. $params['nid'], array('absolute' => TRUE));
-        $message['subject'] = t('I want to tell you about something on Dinby.dk', array(), $language->language);
-        $message['body'] = t("I found this on Dinby.dk - check it out:\n\n!link", array('!link' => $link), $language->language);
+        $message['subject'] = t('I want to tell you about something on !site', array('!site' => $site), $language->language);
+        $message['body'] = t("I found this on !site - check it out:\n\n!link", array('!site' => $site, '!link' => $link), $language->language);
       }
       else {
         $link = url('<front>', array('absolute' => TRUE));
-        $message['subject'] = t('I want to tell you about Dinby.dk', array(), $language->language);
-        $message['body'] = t("I'm a member on Dinby.dk - check it out:\n\n!link", array('!link' => $link), $language->language);
+        $message['subject'] = t('I want to tell you about !site', array('!site' => $site), $language->language);
+        $message['body'] = t("I'm a member on !site - check it out:\n\n!link", array('!site' => $site, '!link' => $link), $language->language);
       }
       break;
   }
